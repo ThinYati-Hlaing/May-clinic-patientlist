@@ -85,26 +85,13 @@ const style = {
   p: 4,
 };
 
-// interface IFormInput {
-//   id: string;
-//   name: string;
-//   pawrent: string;
-//   gender: string;
-//   phone: string;
-//   city?: string;
-//   status: string;
-//   breed: string;
-//   birth: string;
-//   address: string;
-//   town?: string;
-// }
-
 export default function Home() {
-  // const { control, handleSubmit } = useForm<IFormInput>();
   const [open, setOpen] = useState(false);
 
   const [alert, setAlert] = useState(false);
-  const handleOpen = () => setOpen(true);
+  const handleOpen = () => {
+    setOpen(true);
+  };
 
   const handleClose = () => {
     setOpen(false);
@@ -124,6 +111,15 @@ export default function Home() {
 
   const [selectOne, setSelectOne] = useState("");
   const [selectTwo, setSelectTwo] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSuccessAlert(false);
+    }, 3000);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [showSuccessAlert]);
 
   const handleChangeOne = (event: SelectChangeEvent) => {
     setSelectOne(event.target.value);
@@ -385,7 +381,7 @@ export default function Home() {
                     disableElevation
                     endIcon={<KeyboardArrowDownIcon />}
                   >
-                    {tableData.length}
+                    5
                   </Button>
                 </Stack>
               </Stack>
@@ -400,7 +396,9 @@ export default function Home() {
             onSubmit={onSubmit}
             showSuccessAlert={showSuccessAlert}
           />
-          <Box sx={{ lg: { width: "30%" }, width: "35%" }}>
+         
+        </Stack>
+        <Box sx={{ lg: { width: "30%" }, width: "35%" }}>
             <Collapse in={showSuccessAlert}>
               <Alert
                 action={
@@ -419,7 +417,6 @@ export default function Home() {
               </Alert>
             </Collapse>
           </Box>
-        </Stack>
       </Stack>
     </main>
   );

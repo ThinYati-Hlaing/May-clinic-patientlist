@@ -20,24 +20,8 @@ import {
 import React, { FC, useEffect, useState } from "react";
 import { Controller, useForm, SubmitHandler } from "react-hook-form";
 import PatientData, { PatientDataType } from "../../mock/data";
-import generateID from "@/utils/generateId";
-import CloseIcon from "@mui/icons-material/Close";
 import { create } from "domain";
-
-// interface IFormInput {
-//   id: string;
-//   name: string;
-//   pawrent: string;
-//   gender: string;
-//   phone: string;
-//   city: string;
-//   status: string;
-//   breed: string;
-//   birth: string;
-//   address: string;
-//   town: string;
-// }
-
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 interface FormProps {
   handleClose: () => void;
   onSubmit: SubmitHandler<PatientDataType>;
@@ -54,7 +38,7 @@ const CreateForm: FC<FormProps> = ({
   onSubmit,
   open,
   data,
-  formType
+  formType,
 }) => {
   const style = {
     position: "absolute" as "absolute",
@@ -67,7 +51,7 @@ const CreateForm: FC<FormProps> = ({
     boxShadow: 24,
     p: 4,
   };
-  const { control, handleSubmit, reset, setValue} = useForm<PatientDataType>({
+  const { control, handleSubmit, reset, setValue } = useForm<PatientDataType>({
     // defaultValues:{...defaultValues},
     defaultValues: {
       gender: "female",
@@ -77,13 +61,18 @@ const CreateForm: FC<FormProps> = ({
       town: "Hlaing",
     },
   });
+
   const handeFormSubmit: SubmitHandler<PatientDataType> = (data) => {
     onSubmit(data);
     reset();
   };
 
   useEffect(() => {
-    if (data) {
+    if (data && formType === "update") {
+      const updatedAddress = data.address ? data.address.split(",")[0] : "";
+      const updatedCity = data.address ? data.address.split(",")[1] : "";
+      const updatedTown = data.address ? data.address.split(",")[2] : "";
+
       reset({
         id: data.id,
         name: data.name,
@@ -93,12 +82,25 @@ const CreateForm: FC<FormProps> = ({
         status: data.status,
         breed: data.breed,
         birth: data.birth,
-        address: data.address,
-        town: data.town,
-        city: data.city,
+        address: updatedAddress,
+        town: updatedCity,
+        city: updatedTown,
+      });
+    } else if (formType === "create") {
+      reset({
+        name: "",
+        pawrent: "",
+        gender: "female",
+        phone: "",
+        status: "Food Allergy",
+        breed: "Beagle",
+        birth: "",
+        address: "",
+        town: "Hlaing",
+        city: "Yangon",
       });
     }
-  }, [data]);
+  }, [data, formType, open]);
 
   return (
     <div>
@@ -109,24 +111,12 @@ const CreateForm: FC<FormProps> = ({
         aria-describedby="modal-modal-description"
       >
         <Box sx={style}>
-          {/* <Collapse in={showSuccessAlert}>
-            <Alert
-              action={
-                <IconButton
-                  aria-label="close"
-                  color="inherit"
-                  size="small"
-                  onClick={() => setShowSuccessAlert(false)}
-                >
-                  <CloseIcon fontSize="inherit" />
-                </IconButton>
-              }
-              sx={{ mb: 2 }}
-            >
-              {initiailValues ? "Patient updated successfully!" : "New patient added successfully!"}
-            </Alert>
-          </Collapse>
- */}
+          <Button
+            onClick={handleClose}
+            sx={{ position: "absolute", top: 8, right: 0 }}
+          >
+            <CloseOutlinedIcon sx={{ color: "#212121" }} />
+          </Button>
           <Typography
             id="modal-modal-title"
             variant="h6"

@@ -47,52 +47,70 @@ const ListTable: FC<ListTableProps> = ({
 }) => {
   const [list, setLists] = useState<PatientDataType[]>(data);
 
+
   const [remove, setRemove] = useState(false);
   const [dialog, setDialog] = useState(false);
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(
+    null
+  );
+  const [selectedPatientData, setSelectedPatientData] =
+    useState<PatientDataType | null>(null);
 
   const [alert, setAlert] = useState(false);
+
+  const [create,setCreate] = useState(false);
 
   useEffect(() => {
     setLists(data);
   }, [data]);
 
-  const handleUpdate = (updatedData: PatientDataType,id : string) => {
-    const newPatientData: PatientDataType ={
-         id: updatedData.id,
-        isDone:updatedData.isDone,
-        name: updatedData.name,
-        status: updatedData.status,
-        pawrent: updatedData.pawrent,
-        breed: updatedData.breed,
-        gender: updatedData.gender,
-        birth: updatedData.birth,
-        phone: updatedData.phone,
-        address:`${updatedData.address},${updatedData.town},${updatedData.city}`,
-        icon: "/image/more.png",
-    }
-    const updatedList = list.map((patient) => 
-    patient.id === updatedData.id ? newPatientData : patient);
-    setLists(updatedList);
-      handleOpen();  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAlert(false);
+    }, 3000);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [alert]);
+  
+  const handleUpdate = (updatedData: PatientDataType, id: string) => {
+    const newPatientData: PatientDataType = {
+      id: updatedData.id,
+      isDone: updatedData.isDone,
+      name: updatedData.name,
+      status: updatedData.status,
+      pawrent: updatedData.pawrent,
+      breed: updatedData.breed,
+      gender: updatedData.gender,
+      birth: updatedData.birth,
+      phone: updatedData.phone,
+      address: `${updatedData.address},${updatedData.town},${updatedData.city}`,
+      icon: "/image/more.png",
+    };
+    handleOpen();
     setLists((prevList) =>
       prevList.map((item) =>
-        item.id === updatedData.id ? { ...item, ...updatedData, 
-          address:`${updatedData.address}, ${updatedData.town}, ${updatedData.city}`,} : item
+        item.id === newPatientData.id
+          ? {
+              ...item,
+              ...newPatientData,
+              address: `${newPatientData.address}, ${newPatientData.town}, ${newPatientData.city}`,
+            }
+          : item
       )
     );
-    handleClosed()
+    handleClosed();
     handleClose();
+    setCreate(true);
     setAlert(true);
   };
-
 
   const deleteList = (id: string) => {
     const updatedList = list.filter((patient) => patient.id !== id);
     setLists(updatedList);
     setRemove(true);
     setDialog(false);
-    setAlert(true)
+    setAlert(true);
   };
 
   const checkList = (id: string) => {
@@ -104,7 +122,11 @@ const ListTable: FC<ListTableProps> = ({
   };
 
   const doneAllList = () => {
-    const doneList = list.map((list) => ({ ...list, isDone: !list.isDone }));
+    const allDone = list.every((item) => item.isDone);
+    const doneList = list.map((list) => ({
+      ...list,
+      isDone: !allDone,
+    }));
     setLists(doneList);
   };
 
@@ -115,7 +137,6 @@ const ListTable: FC<ListTableProps> = ({
   const handleClicked = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
-
 
   const handleClosed = () => {
     setAnchorEl(null);
@@ -143,7 +164,14 @@ const ListTable: FC<ListTableProps> = ({
           <TableHead>
             <TableRow>
               <TableCell>
-                <Checkbox onChange={() => doneAllList()} />
+                <Checkbox
+                  checked={list.length > 0 && list.every((item) => item.isDone)}
+                  indeterminate={
+                    list.some((item) => item.isDone) &&
+                    !list.every((item) => item.isDone)
+                  }
+                  onChange={() => doneAllList()}
+                />
               </TableCell>
               <TableCell sx={{ minWidth: 60, color: "#54BAB9" }} align="center">
                 ID
@@ -180,168 +208,201 @@ const ListTable: FC<ListTableProps> = ({
               </TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
-           
-            {list.map((patient) => (
-              <TableRow
-                key={patient.id}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-              >
-                <TableCell>
-                  <Checkbox
-                    checked={patient.isDone}
-                    onChange={() => checkList(patient.id)}
-                  />
-                </TableCell>
-                <TableCell component="th" scope="row">
-                  {patient.id}
-                </TableCell>
-                <TableCell width={120} align="center">
-                  {patient.name}
-                </TableCell>
-                <TableCell align="center">
-                  <Image
-                    src={
-                      patient.status === "allergy"
-                        ? "/image/allergy.png"
-                        : "/image/pickyeater.png"
-                    }
-                    alt="status-image"
-                    width={20}
-                    height={20}
-                  />
-                </TableCell>
-                <TableCell align="center">{patient.pawrent}</TableCell>
-                <TableCell align="center">{patient.breed}</TableCell>
-                <TableCell align="center">{patient.gender}</TableCell>
-                <TableCell align="center">{patient.birth}</TableCell>
-                <TableCell align="center">{patient.phone}</TableCell>
-                <TableCell align="left">{patient.address}</TableCell>
-                <TableCell align="center">
-                  <Button onClick={handleClicked}>
-                    <Image
-                      aria-describedby={id}
-                      src={patient.icon}
-                      alt="icon"
-                      width={20}
-                      height={20}
-                    />
-                  </Button>
-                  <Popover
-                    id={id}
-                    open={opened}
-                    anchorEl={anchorEl}
-                    onClose={handleClosed}
-                    anchorOrigin={{
-                      vertical: "bottom",
-                      horizontal: "left",
-                    }}
+          <TableBody sx={{ color: "#54BAB9" }}>
+            {list.length === 0 ? (
+              <TableRow>
+              <TableCell colSpan={10}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100px",
+                  }}
+                >
+                  <Typography sx={{ color: "gray", fontWeight: 500 }}>
+                    There is no list...
+                  </Typography>
+                </Box>
+              </TableCell>
+            </TableRow>
+
+            ) : (
+              list.map((patient) => {
+                return (
+                  <TableRow
+                    key={patient.id}
+                    sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                   >
-                    <Stack
-                      direction="column"
-                      spacing={1}
-                      paddingY={1}
-                      mr={2}
-                      display="flex"
-                      justifyContent="center"
-                      alignItems="center"
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "center",
-                          alignItems: "center",
+                    <TableCell width={100}>
+                      <Checkbox
+                        checked={patient.isDone}
+                        onChange={() => checkList(patient.id)}
+                      />
+                    </TableCell>
+                    <TableCell component="th" scope="row">
+                      {patient.id}
+                    </TableCell>
+                    <TableCell width={120} align="center">
+                      {patient.name}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Image
+                        src={
+                          patient.status === "allergy"
+                            ? "/image/allergy.png"
+                            : "/image/pickyeater.png"
+                        }
+                        alt="status-image"
+                        width={20}
+                        height={20}
+                      />
+                    </TableCell>
+                    <TableCell align="center">{patient.pawrent}</TableCell>
+                    <TableCell align="center">{patient.breed}</TableCell>
+                    <TableCell align="center">{patient.gender}</TableCell>
+                    <TableCell align="center">{patient.birth}</TableCell>
+                    <TableCell align="center">{patient.phone}</TableCell>
+                    <TableCell align="left">{patient.address}</TableCell>
+                    <TableCell align="center">
+                      <Button
+                        onClick={(e) => {
+                          handleClicked(e);
+                          setSelectedPatientData(patient);
                         }}
                       >
-                        <Button 
-                        onClick={() => handleOpen()}
-                        >
-                          <Image
-                            src="/image/edit.png"
-                            alt="status-image"
-                            width={20}
-                            height={20}
-                          />
-                        </Button>
-                        <Typography sx={{ px: 0 }}>Edit</Typography>
-                      </Box>
-                      <CreateForm formType="update" data={patient} open={open} handleClose={handleClose} onSubmit={(data) => handleUpdate(data, patient.id)} defaultValues={patient}/>
-
-                      <Divider flexItem />
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "center",
-                          alignItems: "center",
+                        <Image
+                          aria-describedby={id}
+                          src={patient.icon}
+                          alt="icon"
+                          width={20}
+                          height={20}
+                        />
+                      </Button>
+                      <Popover
+                        id={id}
+                        open={opened}
+                        anchorEl={anchorEl}
+                        onClose={handleClosed}
+                        anchorOrigin={{
+                          vertical: "bottom",
+                          horizontal: "left",
                         }}
                       >
-                        <Button
-                          type="button"
-                          sx={{ ml: 4 }}
-                          onClick={() => {setSelectedPatientId(patient.id); setDialog(true)}}
+                        <Stack
+                          direction="column"
+                          spacing={1}
+                          paddingY={1}
+                          mr={2}
+                          display="flex"
+                          justifyContent="center"
+                          alignItems="center"
                         >
-                          <Image
-                            src="/image/delete.png"
-                            alt="status-image"
-                            width={20}
-                            height={20}
-                          />
-                        </Button>
-                        <Typography sx={{ mr: 2 }}>Delete</Typography>
-
-                        <Dialog open={dialog} onClose={() => setDialog(false)}>
-                          <DialogTitle sx={{ color: "#00537A" }}>
-                            Confirmation
-                          </DialogTitle>
-                          <DialogContent>
-                            <Typography>
-                              Are you sure you want to delete this patient?
-                            </Typography>
-                          </DialogContent>
-                          <DialogActions
+                          <Box
                             sx={{
                               display: "flex",
                               justifyContent: "center",
-                              marginBottom: 2,
-                              gap: 0,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Button onClick={() => handleOpen()}>
+                              <Image
+                                src="/image/edit.png"
+                                alt="status-image"
+                                width={20}
+                                height={20}
+                              />
+                            </Button>
+                            <Typography sx={{ px: 0 }}>Edit</Typography>
+                          </Box>
+  
+                          <Divider flexItem />
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "center",
+                              alignItems: "center",
                             }}
                           >
                             <Button
-                              onClick={() => deleteList(selectedPatientId!)}
-                              sx={{ paddingX: 4 }}
-                              size="small"
-                              variant="contained"
-                              color="error"
+                              type="button"
+                              sx={{ ml: 4 }}
+                              onClick={() => {
+                                setSelectedPatientId(patient.id);
+                                setDialog(true);
+                              }}
                             >
-                              Delete
+                              <Image
+                                src="/image/delete.png"
+                                alt="status-image"
+                                width={20}
+                                height={20}
+                              />
                             </Button>
-                            <Button
-                              onClick={() => setDialog(false)}
-                              sx={{ paddingX: 4 }}
-                              size="small"
-                              variant="outlined"
-                              color="primary"
+                            <Typography sx={{ mr: 2 }}>Delete</Typography>
+  
+                            <Dialog
+                              open={dialog}
+                              onClose={() => setDialog(false)}
                             >
-                              Cancel
-                            </Button>
-                          </DialogActions>
-                        </Dialog>
-                      </Box>
-                    </Stack>
-                  </Popover>
-                </TableCell>
-              </TableRow>
-            ))}
+                              <DialogTitle sx={{ color: "#00537A" }}>
+                                Confirmation
+                              </DialogTitle>
+                              <DialogContent>
+                                <Typography>
+                                  Are you sure you want to delete this patient?
+                                </Typography>
+                              </DialogContent>
+                              <DialogActions
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "center",
+                                  marginBottom: 2,
+                                  gap: 0,
+                                }}
+                              >
+                                <Button
+                                  onClick={() => deleteList(selectedPatientId!)}
+                                  sx={{ paddingX: 4 }}
+                                  size="small"
+                                  variant="contained"
+                                  color="error"
+                                >
+                                  Delete
+                                </Button>
+                                <Button
+                                  onClick={() => setDialog(false)}
+                                  sx={{ paddingX: 4 }}
+                                  size="small"
+                                  variant="outlined"
+                                  color="primary"
+                                >
+                                  Cancel
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                          </Box>
+                        </Stack>
+                      </Popover>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+             )}
+            {selectedPatientData && (
+              <CreateForm
+              
+                formType="update"
+                data={selectedPatientData}
+                open={open}
+                handleClose={handleClose}
+                onSubmit={(data) => handleUpdate(data, selectedPatientData.id)}
+              />
+            )}
           </TableBody>
         </Table>
       </TableContainer>
-      {list.length === 0 && (
-              <Box sx={{ display:"flex",justifyContent:"center",alignItems:"center",pt:10,color:"gray", height:"18px"}}>
-                <Typography sx={{letterSpacing:"0.18em", fontWeight:500,textAlign: "center"}}>
-                There is no list...
-              </Typography>
-              </Box>
-            ) }
+      
       <Box
         sx={{
           lg: { width: "30%" },
@@ -350,7 +411,7 @@ const ListTable: FC<ListTableProps> = ({
         }}
       >
         <Collapse in={alert}>
-          <Alert 
+          <Alert
             action={
               <IconButton
                 aria-label="close"
