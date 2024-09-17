@@ -1,19 +1,12 @@
 "use client";
 
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
 import {
   Alert,
   Box,
   Button,
   Collapse,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
   IconButton,
-  Popover,
-  Stack,
   Table,
   Typography,
 } from "@mui/material";
@@ -25,40 +18,62 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import Checkbox from "@mui/material/Checkbox";
 import Image from "next/image";
-import PatientData, { PatientDataType } from "../../mock/data";
-import { initialize } from "next/dist/server/lib/render-server";
-import CreateForm from "./CreateForm";
-import { SubmitHandler } from "react-hook-form";
+import { PatientDataType } from "../../mock/data";
+import { SubmitHandler, useForm } from "react-hook-form";
 import CloseIcon from "@mui/icons-material/Close";
+import EditModal from "./EditModal";
+import Modals from "./Modals";
+
 interface ListTableProps {
   data: PatientDataType[];
+  id?: string | undefined;
   handleClose: () => void;
   handleOpen: () => void;
   open: boolean;
+  // onClose: () => void;
   onSubmit: SubmitHandler<PatientDataType>;
   showSuccessAlert: boolean;
+  setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+  selectOne: string | null;
+  selectTwo: string | null;
+  searchKeyword: string | null;
 }
 
 const ListTable: FC<ListTableProps> = ({
   data,
-  open,
-  handleOpen,
-  handleClose,
+  selectOne,
+  selectTwo,
+  searchKeyword,
 }) => {
   const [list, setLists] = useState<PatientDataType[]>(data);
 
+  const [editModal, setEditModal] = useState(false);
 
-  const [remove, setRemove] = useState(false);
+  const [alertType, setAlertType] = useState<"delete" | "update" | null>(null);
   const [dialog, setDialog] = useState(false);
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(
-    null
-  );
   const [selectedPatientData, setSelectedPatientData] =
     useState<PatientDataType | null>(null);
 
   const [alert, setAlert] = useState(false);
 
-  const [create,setCreate] = useState(false);
+  const handleCloseEditForm = () => {
+    setEditModal(false);
+  };
+
+  const filterList = list.filter((listItem) => {
+    const matchesKeyword = listItem.name
+      .toLocaleLowerCase()
+      .includes(searchKeyword?.toLocaleLowerCase() || "");
+    const matchesStatus = listItem.status
+      .toLocaleLowerCase()
+      .includes(selectOne?.toLocaleLowerCase() || "");
+
+    const matchesBreed = listItem.breed
+      .toLocaleLowerCase()
+      .includes(selectTwo?.toLocaleLowerCase() || "");
+
+    return matchesKeyword && matchesStatus && matchesBreed;
+  });
 
   useEffect(() => {
     setLists(data);
@@ -72,46 +87,6 @@ const ListTable: FC<ListTableProps> = ({
       clearTimeout(timer);
     };
   }, [alert]);
-  
-  const handleUpdate = (updatedData: PatientDataType, id: string) => {
-    const newPatientData: PatientDataType = {
-      id: updatedData.id,
-      isDone: updatedData.isDone,
-      name: updatedData.name,
-      status: updatedData.status,
-      pawrent: updatedData.pawrent,
-      breed: updatedData.breed,
-      gender: updatedData.gender,
-      birth: updatedData.birth,
-      phone: updatedData.phone,
-      address: `${updatedData.address},${updatedData.town},${updatedData.city}`,
-      icon: "/image/more.png",
-    };
-    handleOpen();
-    setLists((prevList) =>
-      prevList.map((item) =>
-        item.id === newPatientData.id
-          ? {
-              ...item,
-              ...newPatientData,
-              address: `${newPatientData.address}, ${newPatientData.town}, ${newPatientData.city}`,
-            }
-          : item
-      )
-    );
-    handleClosed();
-    handleClose();
-    setCreate(true);
-    setAlert(true);
-  };
-
-  const deleteList = (id: string) => {
-    const updatedList = list.filter((patient) => patient.id !== id);
-    setLists(updatedList);
-    setRemove(true);
-    setDialog(false);
-    setAlert(true);
-  };
 
   const checkList = (id: string) => {
     const result = list.map((list) =>
@@ -153,8 +128,8 @@ const ListTable: FC<ListTableProps> = ({
   const opened = Boolean(anchorEl);
   const id = opened ? "simple-popover" : undefined;
   return (
-    <>
-      <TableContainer component={Paper} sx={{ maxHeight: 350 }}>
+    <Box sx={{ height: 350}}>
+      <TableContainer component={Paper} sx={{ maxHeight: 350}}>
         <Table
           stickyHeader
           aira-label="sticky table"
@@ -208,27 +183,26 @@ const ListTable: FC<ListTableProps> = ({
               </TableCell>
             </TableRow>
           </TableHead>
-          <TableBody sx={{ color: "#54BAB9" }}>
+          <TableBody sx={{ color: "#54BAB9"}}>
             {list.length === 0 ? (
               <TableRow>
-              <TableCell colSpan={10}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100px",
-                  }}
-                >
-                  <Typography sx={{ color: "gray", fontWeight: 500 }}>
-                    There is no list...
-                  </Typography>
-                </Box>
-              </TableCell>
-            </TableRow>
-
+                <TableCell colSpan={10}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      height: "100px",
+                    }}
+                  >
+                    <Typography sx={{ color: "gray", fontWeight: 500 }}>
+                      There is no list...
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
             ) : (
-              list.map((patient) => {
+              filterList.map((patient) => {
                 return (
                   <TableRow
                     key={patient.id}
@@ -279,135 +253,44 @@ const ListTable: FC<ListTableProps> = ({
                           height={20}
                         />
                       </Button>
-                      <Popover
+                      <Modals
+                        list={list}
+                        setLists={setLists}
+                        selectedPatientData={selectedPatientData}
+                        setEditModal={setEditModal}
                         id={id}
-                        open={opened}
+                        opened={opened}
                         anchorEl={anchorEl}
-                        onClose={handleClosed}
-                        anchorOrigin={{
-                          vertical: "bottom",
-                          horizontal: "left",
-                        }}
-                      >
-                        <Stack
-                          direction="column"
-                          spacing={1}
-                          paddingY={1}
-                          mr={2}
-                          display="flex"
-                          justifyContent="center"
-                          alignItems="center"
-                        >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "center",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Button onClick={() => handleOpen()}>
-                              <Image
-                                src="/image/edit.png"
-                                alt="status-image"
-                                width={20}
-                                height={20}
-                              />
-                            </Button>
-                            <Typography sx={{ px: 0 }}>Edit</Typography>
-                          </Box>
-  
-                          <Divider flexItem />
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "center",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Button
-                              type="button"
-                              sx={{ ml: 4 }}
-                              onClick={() => {
-                                setSelectedPatientId(patient.id);
-                                setDialog(true);
-                              }}
-                            >
-                              <Image
-                                src="/image/delete.png"
-                                alt="status-image"
-                                width={20}
-                                height={20}
-                              />
-                            </Button>
-                            <Typography sx={{ mr: 2 }}>Delete</Typography>
-  
-                            <Dialog
-                              open={dialog}
-                              onClose={() => setDialog(false)}
-                            >
-                              <DialogTitle sx={{ color: "#00537A" }}>
-                                Confirmation
-                              </DialogTitle>
-                              <DialogContent>
-                                <Typography>
-                                  Are you sure you want to delete this patient?
-                                </Typography>
-                              </DialogContent>
-                              <DialogActions
-                                sx={{
-                                  display: "flex",
-                                  justifyContent: "center",
-                                  marginBottom: 2,
-                                  gap: 0,
-                                }}
-                              >
-                                <Button
-                                  onClick={() => deleteList(selectedPatientId!)}
-                                  sx={{ paddingX: 4 }}
-                                  size="small"
-                                  variant="contained"
-                                  color="error"
-                                >
-                                  Delete
-                                </Button>
-                                <Button
-                                  onClick={() => setDialog(false)}
-                                  sx={{ paddingX: 4 }}
-                                  size="small"
-                                  variant="outlined"
-                                  color="primary"
-                                >
-                                  Cancel
-                                </Button>
-                              </DialogActions>
-                            </Dialog>
-                          </Box>
-                        </Stack>
-                      </Popover>
+                        handleClosed={handleClosed}
+                        setAlertType={setAlertType}
+                        setAlert={setAlert}
+                      />
                     </TableCell>
                   </TableRow>
                 );
               })
-             )}
-            {selectedPatientData && (
-              <CreateForm
-              
-                formType="update"
+            )}
+            {editModal && selectedPatientData && (
+              <EditModal
+                list={list}
+                setLists={setLists}
+                setAlert={setAlert}
+                setAlertType={setAlertType}
                 data={selectedPatientData}
-                open={open}
-                handleClose={handleClose}
-                onSubmit={(data) => handleUpdate(data, selectedPatientData.id)}
+                handleClose={handleCloseEditForm}
+                onSubmit={handleCloseEditForm}
+                
               />
             )}
           </TableBody>
         </Table>
       </TableContainer>
-      
-      <Box
+
+      <Box  position={"fixed"} bottom={0} left={0}
         sx={{
           lg: { width: "30%" },
           width: "35%",
-          marginTop: "13%",
+          // marginTop: "10%",
         }}
       >
         <Collapse in={alert}>
@@ -424,13 +307,16 @@ const ListTable: FC<ListTableProps> = ({
             }
             sx={{ mb: 2 }}
           >
-            {remove
+            {alertType === "delete"
               ? "Patient is successfully deleted!"
-              : " Patient is successfully updated!"}
+              : alertType === "update"
+              ? "Patient is successfully updated!"
+              : "No action performed!"}
           </Alert>
         </Collapse>
       </Box>
-    </>
+
+    </Box>
   );
 };
 

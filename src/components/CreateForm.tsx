@@ -1,13 +1,10 @@
 import {
-  Alert,
   Box,
   Button,
-  Collapse,
   FormControl,
   FormControlLabel,
   FormLabel,
   Grid,
-  IconButton,
   MenuItem,
   Modal,
   Radio,
@@ -19,13 +16,11 @@ import {
 } from "@mui/material";
 import React, { FC, useEffect, useState } from "react";
 import { Controller, useForm, SubmitHandler } from "react-hook-form";
-import PatientData, { PatientDataType } from "../../mock/data";
-import { create } from "domain";
+import { PatientDataType } from "../../mock/data";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 interface FormProps {
   handleClose: () => void;
   onSubmit: SubmitHandler<PatientDataType>;
-  open: boolean;
   formType: "create" | "update";
   defaultValues?: PatientDataType;
   showSuccessAlert?: boolean;
@@ -36,7 +31,6 @@ interface FormProps {
 const CreateForm: FC<FormProps> = ({
   handleClose,
   onSubmit,
-  open,
   data,
   formType,
 }) => {
@@ -52,7 +46,6 @@ const CreateForm: FC<FormProps> = ({
     p: 4,
   };
   const { control, handleSubmit, reset, setValue } = useForm<PatientDataType>({
-    // defaultValues:{...defaultValues},
     defaultValues: {
       gender: "female",
       city: "Yangon",
@@ -66,7 +59,7 @@ const CreateForm: FC<FormProps> = ({
     onSubmit(data);
     reset();
   };
-
+console.log("hello");
   useEffect(() => {
     if (data && formType === "update") {
       const updatedAddress = data.address ? data.address.split(",")[0] : "";
@@ -103,9 +96,8 @@ const CreateForm: FC<FormProps> = ({
   }, [data, formType, open]);
 
   return (
-    <div>
       <Modal
-        open={open}
+        open={true}
         onClose={handleClose}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
@@ -127,7 +119,8 @@ const CreateForm: FC<FormProps> = ({
             flexDirection="column"
             color="#54BAB9"
           >
-            {formType === "create" ? "Add New Patient" : "Edit Patient"}
+            {/* {formType === "create" ? "Add New Patient" : "Edit Patient"} */}
+            Add New Patient
           </Typography>
           <Typography
             display="flex"
@@ -345,7 +338,6 @@ const CreateForm: FC<FormProps> = ({
           </Stack>
         </Box>
       </Modal>
-    </div>
   );
 };
 
